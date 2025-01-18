@@ -49,7 +49,7 @@ var shapes_full := shapes.duplicate()
 #Grid Vars
 const rows := 20
 const columns := 10
-const start_position:= Vector2i(5,2)
+
 
 #TileMap Variables
 var tile_id : int = 0
@@ -59,6 +59,14 @@ var next_piece_atlas : Vector2i
 # Layers
 @onready var board: TileMapLayer = $Board
 @onready var game: TileMapLayer = $Game
+
+#Movement Variables
+const start_position:= Vector2i(5,1)
+var current_position : Vector2i
+const directions : Array = [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.DOWN]
+var speed: float
+var steps :Array
+const steps_req: int = 50
 
 #Piece Variables
 var piece_type
@@ -71,10 +79,14 @@ func _ready() -> void:
 	new_game()
 	
 func new_game():
+	speed = 1.0
+	steps = [0,0,0] # 0 - Left, 1 - Right, 2 - Down
 	piece_type = pick_piece()
 	piece_atlas = Vector2i(shapes_full.find(piece_type), 0)
-	
+	create_piece()
+
 func pick_piece():
+	#randomize pickikng a piece
 	var piece
 	shapes.shuffle()
 	if not shapes.is_empty():
@@ -83,12 +95,58 @@ func pick_piece():
 		shapes = shapes_full.duplicate()
 	return piece
 
+func create_piece():
+	#Creation of the piece in the beginning or after a piece is dropped
+	#resetting variable
+	steps = [0,0,0]
+	current_position = start_position
+	active_piece = piece_type[rotation_index] #Calling for a new active piece through pick_piece()
+	draw_piece(active_piece,current_position,piece_atlas)
+	
+func clear_piece():
+	#Erase the tiles based on the active piece
+	for i in active_piece:
+		game.erase_cell(current_position + i)
+	
 func _process(delta: float) -> void:
-	draw_piece(piece_type[0], start_position, piece_atlas)
+	if Input.is_action_pressed("DOWN"):
+		steps[2] += 10
+	elif Input.is_action_pressed("LEFT"):
+		steps[0] += 10
+	elif Input.is_action_pressed("RIGHT"):
+		steps[1] += 10
+	
+	#Movement downwards
+	steps[2] += speed
+	
+	#Movement in general
+	for i in range(steps.size()):
+		if steps[i] > steps_req:
+			move_piece(directions[i])
+			steps[i] = 0
 
+func move_piece(dir):
+	if can_move(dir):
+		clear_piece() #Remove the piece at the location and then
+		current_position += dir #Change the position then
+		draw_piece(active_piece, current_position, piece_atlas) #Draw a new piece at the new position
 
+func can_move(dir):
+	#Checking if we can move
+	
+	var cm: bool = true
+	for i in active_piece:
+		print(is_free(current_position + i + dir))
+		if not is_free(current_position + i + dir):
+			cm = false
+	
+	return cm
+
+func is_free(pos):
+	return board.get_cell_source_id(pos) == -1
 
 func draw_piece(piece, pos, atlas):
+	# Iterate through piece array and draw a tile at each position
 	for i in piece:
 		game.set_cell(pos + i,tile_id, atlas)
 	
