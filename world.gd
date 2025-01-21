@@ -58,7 +58,7 @@ var tile_id : int = 0
 var piece_atlas : Vector2i
 var next_piece_atlas : Vector2i
 
-#Layers
+# Layers
 @onready var board: TileMapLayer = $Board
 @onready var game: TileMapLayer = $Game
 @onready var hud: CanvasLayer = $Hud
